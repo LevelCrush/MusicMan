@@ -16,6 +16,7 @@ import {
   getVoiceConnectionInterface,
   VoiceConnectionInterface,
 } from "../voiceManager";
+import { memberInValidChannel } from "../util/channelChecker";
 
 const queue: Command = {
   name: "queue",
@@ -39,10 +40,7 @@ const queue: Command = {
 
     try {
       const member: GuildMember = interaction.member as GuildMember;
-      if (
-        !member.voice.channel ||
-        member.voice.channel.type !== ChannelType.GuildVoice
-      )
+      if (!memberInValidChannel(member))
         throw new BotError(
           "Queue command user not in bot voice channel",
           "You must be in a bot voice channel"
