@@ -5,6 +5,6 @@ const allowedChannelTypes = [
   ChannelType.GuildStageVoice,
 ];
 
-export function inValidChannel(member: GuildMember) {
+export function memberInValidChannel(member: GuildMember) {
   return member.voice.channel && allowedChannelTypes.includes(member.voice.channel.type);
 }

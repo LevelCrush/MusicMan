@@ -6,6 +6,7 @@ import {
   ChannelType,
   GatewayIntentBits,
   InteractionResponse,
+  StageChannel,
 } from "discord.js";
 import { BotError } from "../BotError";
 import { Command } from "../command";
@@ -16,6 +17,7 @@ import {
   getVoiceConnectionInterface,
   VoiceConnectionInterface,
 } from "../voiceManager";
+import { memberInValidChannel } from "../util/channelChecker";
 
 const queue: Command = {
   name: "playing",
@@ -31,16 +33,13 @@ const queue: Command = {
 
     try {
       const member: GuildMember = interaction.member as GuildMember;
-      if (
-        !member.voice.channel ||
-        member.voice.channel.type !== ChannelType.GuildVoice
-      )
+      if (!memberInValidChannel(member))
         throw new BotError(
           "Playing command user not in bot voice channel",
           "You must be in a bot voice channel"
         );
 
-      const voiceChannel: VoiceChannel = member.voice.channel as VoiceChannel;
+      const voiceChannel = member.voice.channel as VoiceChannel | StageChannel;
       const connectionInterface: VoiceConnectionInterface | null =
         getVoiceConnectionInterface(voiceChannel);
       if (!connectionInterface)

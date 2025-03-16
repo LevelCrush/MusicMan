@@ -14,6 +14,7 @@ import { Song } from "../song";
     getVoiceConnectionInterface,
     VoiceConnectionInterface,
   } from "../voiceManager";
+import { memberInValidChannel } from "../util/channelChecker";
   
   const remove: Command = {
     name: "remove",
@@ -31,10 +32,7 @@ import { Song } from "../song";
     run: async (interaction: ChatInputCommandInteraction) => { 
       try {
         const member: GuildMember = interaction.member as GuildMember;
-        if (
-          !member.voice.channel ||
-          member.voice.channel.type !== ChannelType.GuildVoice
-        )
+        if (!memberInValidChannel(member))
           throw new BotError(
             "Remove command user not in bot voice channel",
             "You must be in a bot voice channel"

@@ -5,6 +5,11 @@ import { createEmbed, createBotErrorEmbed } from "../messageUtilities";
 import { Song } from "../song";
 import { getSongs } from "../songResolver";
 import { createVoiceConnectionInterface, VoiceConnectionInterface } from "../voiceManager";
+import { memberInValidChannel } from "../util/channelChecker";
+import { StageChannel } from "discord.js";
+
+
+
 
 const play: Command = {
   name: "play",
@@ -34,12 +39,15 @@ const play: Command = {
 
     try {
       const member: GuildMember = interaction.member as GuildMember;
-      if (!member.voice.channel || member.voice.channel.type !== ChannelType.GuildVoice)
+      
+      if (!memberInValidChannel(member))
         throw new BotError("play command user not in voice channel", "You must be in a voice channel");
 
-      const voiceChannel: VoiceChannel = member.voice.channel as VoiceChannel;
+      const voiceChannel = member.voice.channel as VoiceChannel | StageChannel;
       if (!voiceChannel.joinable)
         throw new BotError("play command user voice channel not joinable", "Can not join voice channel");
+
+      
 
       const connectionInterface: VoiceConnectionInterface = await createVoiceConnectionInterface(voiceChannel);
       const songs: Song[] = await getSongs(

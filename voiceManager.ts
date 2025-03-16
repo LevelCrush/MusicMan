@@ -12,10 +12,16 @@ import {
   getVoiceConnection,
   NoSubscriberBehavior,
 } from "@discordjs/voice";
-import { VoiceChannel, VoiceState } from "discord.js";
+import {
+  ChannelType,
+  StageChannel,
+  VoiceChannel,
+  VoiceState,
+} from "discord.js";
 import { BotError } from "./BotError";
 import { createSongStream, SongStream } from "./songStream";
 import { config } from "./configuration";
+import { Channel } from "diagnostics_channel";
 
 const connectionInterfaces: Map<
   string,
@@ -25,7 +31,7 @@ const connectionInterfaces: Map<
 export class VoiceConnectionInterface {
   public looped: boolean;
   private _connection?: VoiceConnection;
-  private _channel: VoiceChannel;
+  private _channel: VoiceChannel | StageChannel;
   private _userId: string;
   private _destroyed: boolean;
   private _queue: Song[];
@@ -47,7 +53,7 @@ export class VoiceConnectionInterface {
   ) => Promise<void>;
   private boundDestroy: () => void;
 
-  constructor(channel: VoiceChannel) {
+  constructor(channel: VoiceChannel | StageChannel) {
     this.looped = false;
     this._channel = channel;
     this._userId = channel.client.user?.id as string;
@@ -109,6 +115,8 @@ export class VoiceConnectionInterface {
           selfMute: false,
           group: this._userId,
         });
+
+        
       }
 
       this._connection.on("stateChange", (oldState, newState) => {
@@ -138,6 +146,7 @@ export class VoiceConnectionInterface {
         throw new BotError(e, "Failed to join voice channel");
       });
 
+   
       this._connection.setSpeaking(false);
       // AudioPlayer silently stops playback if you miss too many frames
       // increase the max number of frames to allow for slow buffering songs
@@ -148,6 +157,11 @@ export class VoiceConnectionInterface {
           noSubscriber: NoSubscriberBehavior.Stop,
         },
       });
+
+      if (this._channel.type === ChannelType.GuildStageVoice) {
+        this._channel.guild.members.me.voice.setSuppressed(false);
+      }
+
       this._connection.subscribe(this._player);
       this._player.on("stateChange", this.boundPlayerStateChange);
       this.setIdleTimeout();
@@ -258,7 +272,7 @@ export class VoiceConnectionInterface {
     return this._destroyed;
   }
 
-  get channel(): VoiceChannel {
+  get channel(): VoiceChannel | StageChannel {
     return this._channel;
   }
 
@@ -382,7 +396,7 @@ export class VoiceConnectionInterface {
 }
 
 export const getVoiceConnectionInterface = (
-  channel: VoiceChannel
+  channel: VoiceChannel | StageChannel
 ): VoiceConnectionInterface | null => {
   const userId: string | undefined = channel.client.user?.id;
   if (!userId) return null;
@@ -391,7 +405,7 @@ export const getVoiceConnectionInterface = (
 
 // returns existing interface if it exists if not creates a new one
 export const createVoiceConnectionInterface = async (
-  channel: VoiceChannel
+  channel: VoiceChannel | StageChannel
 ): Promise<VoiceConnectionInterface> => {
   let voiceConnection: VoiceConnectionInterface | null = null;
   try {
@@ -401,11 +415,12 @@ export const createVoiceConnectionInterface = async (
         "createVoiceConnectionInterface user id not defined",
         "Failed to join voice channel"
       );
-    if (!connectionInterfaces.has(userId))
+    if (!connectionInterfaces.has(userId)) {
       connectionInterfaces.set(
         userId,
         new Map<string, VoiceConnectionInterface>()
       );
+    }
     const map: Map<string, VoiceConnectionInterface> = connectionInterfaces.get(
       userId
     ) as Map<string, VoiceConnectionInterface>;
